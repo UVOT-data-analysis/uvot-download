@@ -34,8 +34,8 @@ def query_heasarc(input_obj, list_opt=None):
 		
 		os.system('browse_extract_wget.pl table=swiftmastr position=' + obj + ' radius=5 fields=obsid,start_time outfile=data.dat')
 
-		fh = open('data.dat', 'r')
-		rows_list = fh.readlines()
+		with open('data.dat', 'r') as fh:
+            rows_list = fh.readlines()
 
 		if len(rows_list) == 1:
 			print("No observations of " + obj + " were found in HEASARC.")
@@ -48,18 +48,19 @@ def query_heasarc(input_obj, list_opt=None):
 
 		#run browse_extract with all of the parameters needed to make data.dat
 
-		#filename.open() new file here that will hold all the wget commands
-		download_scr = open('download.scr', 'w+')
-
 		#important inputs for loadtxt:
 		#comments: comments out last line that lists number of observations returned for an object
 		#skiprows: skips first two rows in data.dat that are just for formatting
 
-		obslist = np.loadtxt('data.dat', dtype = 'str', delimiter = '|', comments = 'S', skiprows = 2, usecols = (1,2)).tolist()
+		obslist = np.loadtxt('data.dat', dtype = 'str', delimiter = '|',
+                                 comments = 'S', skiprows = 2, usecols = (1,2)).tolist()
 		id_list = list()
 
 		#if obslist is empty:
 		#	continue to next obj in obj_list, though if there's nothing that comes next, will it just end the program?
+
+        # prefix for all of the wget commands
+        wget_prefix = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/"
 
 		#consideration for a case where target that does not exist in heasarc
 		if len(obslist[0]) > 2:
@@ -71,12 +72,15 @@ def query_heasarc(input_obj, list_opt=None):
 			id_list.append(obsid)
 
 		#	string addition to make wget commands for data download
-			wget_uvot = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/uvot/"
-			wget_auxil = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/auxil/"
-			download_scr.write(wget_uvot)
-			download_scr.write("\n")
-			download_scr.write(wget_auxil)
-			download_scr.write("\n")
+			wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
+			wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
+
+            with open('download.scr', 'w+') as download_scr:
+                download_scr.write(wget_uvot)
+                download_scr.write("\n")
+                download_scr.write(wget_auxil)
+                download_scr.write("\n")
+            
 		else:
 			for i in range(len(obslist)):
 				#print(obslist[i])
@@ -87,15 +91,16 @@ def query_heasarc(input_obj, list_opt=None):
 				id_list.append(obsid)
 		
 			#	string addition to make wget commands for data download
-				wget_uvot = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/uvot/"
-				wget_auxil = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/auxil/"
-				download_scr.write(wget_uvot)
-				download_scr.write("\n")
-				download_scr.write(wget_auxil)
-				download_scr.write("\n")
+				wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
+				wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
+
+                with open('download.scr', 'w+') as download_scr:
+                    download_scr.write(wget_uvot)
+                    download_scr.write("\n")
+                    download_scr.write(wget_auxil)
+                    download_scr.write("\n")
 
 		#run the download script here and put the results in the directories created at the beginning of the list
-		download_scr.close()
 
 		#make download script executable
 		st = os.stat('download.scr')
