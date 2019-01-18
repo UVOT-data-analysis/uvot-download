@@ -5,6 +5,7 @@ import argparse
 import sys
 import glob
 import urllib.request
+import subprocess
 
 import pdb
 
@@ -107,9 +108,8 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
 
             with open('download.scr', 'a') as download_scr:
                 download_scr.write(wget_uvot + '\n')
-                download_scr.write('mv '+obsid+'/uvot '+obj+'/ \n')
                 download_scr.write(wget_auxil + '\n')
-                download_scr.write('mv '+obsid+'/auxil '+obj+'/ \n')
+                download_scr.write('mv '+obsid+' '+obj+'/ \n')
             
         else:
             for i in range(len(obslist)):
@@ -126,17 +126,14 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
 
                 with open('download.scr', 'a') as download_scr:
                     download_scr.write(wget_uvot + '\n')
-                    download_scr.write('mv '+obsid+'/uvot '+obj+'/ \n')
                     download_scr.write(wget_auxil + '\n')
-                    download_scr.write('mv '+obsid+'/auxil '+obj+'/ \n')
+                    download_scr.write('mv '+obsid+' '+obj+'/ \n')
 
         #run the download script here and put the results in the directories created at the beginning of the list
 
         #make download script executable
-        st = os.stat('download.scr')
-        os.chmod('download.scr', st.st_mode | stat.S_IEXEC)
         print("* running download script for "+obj)
-        os.system('download.scr')
+        os.system('sh download.scr')
 
         #unzip all the downloaded data
         os.system('gunzip */*/*.gz')
