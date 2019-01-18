@@ -5,10 +5,22 @@ import argparse
 import sys
 import glob
 
-def query_heasarc(input_obj, list_opt=False):
+def query_heasarc(input_obj, list_opt=None):
+    """
+    Find observations of a target in HEASARC, create download script, and download the data
+
+    Parameters
+    ----------
+    input_obj : string or list of strings
+        Name(s) of object(s) to search for; ignored if list_opt is set
+
+    list_opt : string (default=None)
+        Set to name of file that contains one column of object name(s)
+
+    """
 
 	#condition that handles either a list of entries from a file that needs to be loaded or a single object put into a list
-	if list_opt:
+	if list_opt is not None:
 		obj_list = np.loadtxt(input_obj, dtype = 'str').tolist()
 		#print('expect a list and do list things')
 	else:
