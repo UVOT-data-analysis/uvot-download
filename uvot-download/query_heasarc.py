@@ -136,9 +136,11 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
         os.system('sh download.scr')
 
         #unzip all the downloaded data
-        os.system('gunzip */*/*.gz')
-        os.system('gunzip */*/*/*.gz')
-        os.chdir('..')
+        print('* unzipping files')
+        for i in id_list:
+            gz_files = glob.glob(obj+'/'+i+'/**/*.gz', recursive=True)
+            for gz in gz_files:
+                subprocess.run('gunzip '+gz, shell=True)
 
 
 
