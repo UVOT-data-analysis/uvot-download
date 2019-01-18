@@ -5,7 +5,7 @@ import argparse
 import sys
 import glob
 
-def query_heasarc(input_obj, list_opt=None):
+def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
     """
     Find observations of a target in HEASARC, create download script, and download the data
 
@@ -16,6 +16,9 @@ def query_heasarc(input_obj, list_opt=None):
 
     list_opt : string (default=None)
         Set to name of file that contains one column of object name(s)
+
+    search_radius : float (default=7.0)
+        Search radius (arcmin)
 
     """
 
@@ -32,7 +35,9 @@ def query_heasarc(input_obj, list_opt=None):
 		os.mkdir(obj)
 		os.chdir(obj)
 		
-		os.system('browse_extract_wget.pl table=swiftmastr position=' + obj + ' radius=5 fields=obsid,start_time outfile=data.dat')
+		os.system('browse_extract_wget.pl table=swiftmastr position='
+                      + obj + ' radius='+str(search_radius)
+                      +' fields=obsid,start_time outfile=data.dat')
 
 		with open('data.dat', 'r') as fh:
             rows_list = fh.readlines()
