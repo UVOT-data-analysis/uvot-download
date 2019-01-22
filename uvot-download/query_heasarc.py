@@ -4,116 +4,166 @@ import stat
 import argparse
 import sys
 import glob
+import urllib.request
+import subprocess
 
-def query_heasarc(input_obj, list_opt=False):
+import pdb
 
-	#condition that handles either a list of entries from a file that needs to be loaded or a single object put into a list
-	if list_opt:
-		obj_list = np.loadtxt(input_obj, dtype = 'str').tolist()
-		#print('expect a list and do list things')
-	else:
-		obj_list = [input_obj]
-	
-	for obj in obj_list:
+def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
+    """
+    Find observations of a target in HEASARC, create download script, and download the data
 
-		#make new folders for each of the objects	
-		os.mkdir(obj)
-		os.chdir(obj)
-		
-		os.system('browse_extract_wget.pl table=swiftmastr position=' + obj + ' radius=5 fields=obsid,start_time outfile=data.dat')
+    Parameters
+    ----------
+    input_obj : string or list of strings
+        Name(s) of object(s) to search for; ignored if list_opt is set
 
-		fh = open('data.dat', 'r')
-		rows_list = fh.readlines()
+    list_opt : string (default=None)
+        Set to name of file that contains one column of object name(s)
 
-		if len(rows_list) == 1:
-			print("No observations of " + obj + " were found in HEASARC.")
-			dir_path = '*/*/*/' + gal
-			r = glob.glob(dir_path)
-			for i in r:
-				os.remove(i)
-			os.chdir("..")
-			continue
+    search_radius : float (default=7.0)
+        Search radius (arcmin)
 
-		#run browse_extract with all of the parameters needed to make data.dat
+    """
 
-		#filename.open() new file here that will hold all the wget commands
-		download_scr = open('download.scr', 'w+')
+    #condition that handles either a list of entries from a file that needs to be loaded or a single object put into a list
+    if list_opt is not None:
+        obj_list = np.loadtxt(input_obj, dtype = 'str').tolist()
+        #print('expect a list and do list things')
+    else:
+        obj_list = [input_obj]
+    
+    for obj in obj_list:
 
-		#important inputs for loadtxt:
-		#comments: comments out last line that lists number of observations returned for an object
-		#skiprows: skips first two rows in data.dat that are just for formatting
+        #make new folders for each of the objects
+        if not os.path.exists(obj):
+            os.mkdir(obj)
 
-		obslist = np.loadtxt('data.dat', dtype = 'str', delimiter = '|', comments = 'S', skiprows = 2, usecols = (1,2)).tolist()
-		id_list = list()
+        # file name to save the table
+        output_file = obj + '/heasarc_obs.dat'
 
-		#if obslist is empty:
-		#	continue to next obj in obj_list, though if there's nothing that comes next, will it just end the program?
+        # command to generate HEASARC query
+        #cmd = 'browse_extract_wget.pl table=swiftmastr position=' \
+        #              + obj + ' radius='+str(search_radius) \
+        #              +' fields=obsid,start_time outfile=data.dat'
+        cmd = 'wget -O - -o /dev/null --no-check-certificate ' + "'" \
+              'https://heasarc.gsfc.nasa.gov/db-perl/W3Browse/w3query.pl?' + \
+              'tablehead='+urllib.request.quote('name=BATCHRETRIEVALCATALOG_2.0 swiftmastr') + \
+              '&Action=Query' + \
+              '&Coordinates='+urllib.request.quote("'Equatorial: R.A. Dec'") + \
+              '&Equinox=2000' + \
+              '&Radius='+str(search_radius) + \
+              '&NR=SIMBAD' + \
+              '&GIFsize=0' + \
+              '&Fields=&varon='+'&varon='.join(['obsid','start_time']) + \
+              '&Entry='+urllib.request.quote(obj) + \
+              '&displaymode=BatchDisplay' + \
+              "' > " + output_file
+              
+        os.system(cmd)
 
-		##condition that handles cases where HEASARC query returns only one row or zero rows
-		if len(obslist[0]) > 2:
-			#print(obslist)
-			obsid = obslist[0]
-			starttime = obslist[1]
-			start_month = starttime[0:7]
-			start_month = start_month.replace('-','_')
-			id_list.append(obsid)
+        # read in the query output
+        with open('data.dat', 'r') as fh:
+            rows_list = fh.readlines()
 
-		#	string addition to make wget commands for data download
-			wget_uvot = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/uvot/"
-			wget_auxil = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/auxil/"
-			download_scr.write(wget_uvot)
-			download_scr.write("\n")
-			download_scr.write(wget_auxil)
-			download_scr.write("\n")
-		elif len(obslist[0]) == 0:
-			print("* Search of table swiftmastr around "+obj+" with a radius 5' returns 0 rows")
-			print("* Looks like there's no observation data for this object.")
-			print("* Check to make sure that this object has been observed. Moving on...")
-			continue
-		else:
-			for i in range(len(obslist)):
-				#print(obslist[i])
-				[obsid, starttime] = obslist[i]
-		
-				start_month = starttime[0:7]
-				start_month = start_month.replace('-','_')
-				id_list.append(obsid)
-		
-			#	string addition to make wget commands for data download
-				wget_uvot = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/uvot/"
-				wget_auxil = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/" + start_month + '//' + obsid + "/auxil/"
-				download_scr.write(wget_uvot)
-				download_scr.write("\n")
-				download_scr.write(wget_auxil)
-				download_scr.write("\n")
+        if len(rows_list) == 1:
+            print("No observations of " + obj + " were found in HEASARC.")
+            dir_path = '*/*/*/' + gal
+            r = glob.glob(dir_path)
+            for i in r:
+                os.remove(i)
+            continue
 
-		#run the download script here and put the results in the directories created at the beginning of the list
-		download_scr.close()
+        #run browse_extract with all of the parameters needed to make data.dat
 
-		#make download script executable
-		st = os.stat('download.scr')
-		os.chmod('download.scr', st.st_mode | stat.S_IEXEC)
-		print("* running download script for "+obj)
-		os.system('download.scr')
+        #important inputs for loadtxt:
+        #comments: comments out last line that lists number of observations returned for an object
+        #skiprows: skips first two rows in data.dat that are just for formatting
 
-		#unzip all the downloaded data
-		os.system('gunzip */*/*.gz')
-		os.system('gunzip */*/*/*.gz')
-		os.chdir('..')
+        #obslist = np.loadtxt('data.dat', dtype = 'str', delimiter = '|',
+        #                         comments = 'S', skiprows = 2, usecols = (1,2)).tolist()
+        obslist = np.loadtxt('data.dat', dtype = 'str', delimiter = '|',
+                                 skiprows=3, comments='B', usecols = (1,2)).tolist()
+        id_list = list()
 
+        #if obslist is empty:
+        #    continue to next obj in obj_list, though if there's nothing that comes next, will it just end the program?
+
+        # prefix for all of the wget commands
+        wget_prefix = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/"
+
+        # make sure download script doesn't exist
+        if os.path.isfile('download.scr'):
+            os.remove('download.scr')
+            
+
+        #condition that handles cases where HEASARC query returns only one row or zero rows
+        if len(obslist[0]) > 2:
+            #print(obslist)
+            obsid = obslist[0]
+            starttime = obslist[1]
+            start_month = starttime[0:7]
+            start_month = start_month.replace('-','_')
+            id_list.append(obsid)
+
+        #    string addition to make wget commands for data download
+            wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
+            wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
+
+            with open('download.scr', 'a') as download_scr:
+                download_scr.write(wget_uvot + '\n')
+                download_scr.write(wget_auxil + '\n')
+                download_scr.write('mv '+obsid+' '+obj+'/ \n')
+            
+        elif len(obslist[0]) == 0:
+            print("* Search of table swiftmastr around "+obj+" with a radius 5' returns 0 rows")
+            print("* Looks like there's no observation data for this object.")
+            print("* Check to make sure that this object has been observed. Moving on...")
+            continue
+
+        else:
+            for i in range(len(obslist)):
+                #print(obslist[i])
+                [obsid, starttime] = obslist[i]
+        
+                start_month = starttime[0:7]
+                start_month = start_month.replace('-','_')
+                id_list.append(obsid)
+        
+            #    string addition to make wget commands for data download
+                wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
+                wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
+
+                with open('download.scr', 'a') as download_scr:
+                    download_scr.write(wget_uvot + '\n')
+                    download_scr.write(wget_auxil + '\n')
+                    download_scr.write('mv '+obsid+' '+obj+'/ \n')
+
+        #run the download script here and put the results in the directories created at the beginning of the list
+
+        #make download script executable
+        print("* running download script for "+obj)
+        os.system('sh download.scr')
+
+        #unzip all the downloaded data
+        print('* unzipping files')
+        for i in id_list:
+            gz_files = glob.glob(obj+'/'+i+'/**/*.gz', recursive=True)
+            for gz in gz_files:
+                subprocess.run('gunzip '+gz, shell=True)
 
 
 def main():
-	parser = argparse.ArgumentParser()
-	parser.add_argument('input_obj', nargs="?", help="Accepts either the object name as a string or a text file with a list of object names", default='')
-	parser.add_argument('-l','--list', help="query_heasarc will expect the name of a text file that contains a list of objects.", action='store_true', default=False)
-	args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_obj', nargs="?", help="Accepts either the object name as a string or a text file with a list of object names", default='')
+    parser.add_argument('-l','--list', help="query_heasarc will expect the name of a text file that contains a list of objects.", action='store_true', default=False)
+    args = parser.parse_args()
 
-	if not args.input_obj:
-		print('Please specify an object or list of objects you would like to search for.') 
-		sys.exit()
+    if not args.input_obj:
+        print('Please specify an object or list of objects you would like to search for.') 
+        sys.exit()
 
-	query_heasarc(args.input_obj, list_opt=args.list)
+    query_heasarc(args.input_obj, list_opt=args.list)
 
 if __name__ =="__main__":
-	main()
+    main()
