@@ -97,7 +97,7 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
             os.remove('download.scr')
             
 
-        #consideration for a case where target that does not exist in heasarc
+        #condition that handles cases where HEASARC query returns only one row or zero rows
         if len(obslist[0]) > 2:
             #print(obslist)
             obsid = obslist[0]
@@ -115,6 +115,12 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
                 download_scr.write(wget_auxil + '\n')
                 download_scr.write('mv '+obsid+' '+obj+'/ \n')
             
+        elif len(obslist[0]) == 0:
+            print("* Search of table swiftmastr around "+obj+" with a radius 5' returns 0 rows")
+            print("* Looks like there's no observation data for this object.")
+            print("* Check to make sure that this object has been observed. Moving on...")
+            continue
+
         else:
             for i in range(len(obslist)):
                 #print(obslist[i])
@@ -145,7 +151,6 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
             gz_files = glob.glob(obj+'/'+i+'/**/*.gz', recursive=True)
             for gz in gz_files:
                 subprocess.run('gunzip '+gz, shell=True)
-
 
 
 def main():
