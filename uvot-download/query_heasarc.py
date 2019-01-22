@@ -39,6 +39,9 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
         if not os.path.exists(obj):
             os.mkdir(obj)
 
+        # file name to save the table
+        output_file = obj + '/heasarc_obs.dat'
+
         # command to generate HEASARC query
         #cmd = 'browse_extract_wget.pl table=swiftmastr position=' \
         #              + obj + ' radius='+str(search_radius) \
@@ -54,7 +57,8 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
               '&GIFsize=0' + \
               '&Fields=&varon='+'&varon='.join(['obsid','start_time']) + \
               '&Entry='+urllib.request.quote(obj) + \
-              '&displaymode=BatchDisplay' + "' > data.dat"
+              '&displaymode=BatchDisplay' + \
+              "' > " + output_file
               
         os.system(cmd)
 
