@@ -21,7 +21,7 @@ def download_heasarc(heasarc_files):
     for filename in heasarc_files:
 
         # galaxy name
-        gal_name = filename.split('/')[-2]
+        gal_name = os.path.realpath(filename).split('/')[-2]
     
         # read in the query output
         with open(filename, 'r') as fh:
@@ -50,12 +50,14 @@ def download_heasarc(heasarc_files):
         #if obslist is empty:
         #    continue to next obj in obj_list, though if there's nothing that comes next, will it just end the program?
 
-        # prefix for all of the wget commands
+        # path where things will get saved
         save_path = '/'.join( os.path.realpath(filename).split('/')[:-1] )
+
+        # prefix for all of the wget commands
         wget_prefix = "wget -q -nH --no-check-certificate --cut-dirs=5 -r -l0 -c -N -np -R 'index*' -erobots=off --directory-prefix="+save_path+" --retr-symlinks https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/"
 
         # path+name for download file
-        download_file = os.path.dirname(filename) + '/download.scr'
+        download_file = save_path + '/download.scr'
         
         # make sure download script doesn't exist
         if os.path.isfile(download_file):

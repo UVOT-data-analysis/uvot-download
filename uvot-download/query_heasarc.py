@@ -6,9 +6,10 @@ import urllib.request
 
 import pdb
 
-def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
+def query_heasarc(input_obj, list_opt=None, search_radius=7.0,
+                      create_folder=True):
     """
-    Find observations of a target in HEASARC, create download script, and download the data
+    Find observations of a target in HEASARC
 
     Parameters
     ----------
@@ -20,6 +21,10 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
 
     search_radius : float (default=7.0)
         Search radius (arcmin)
+
+    create_folder : boolean (default=True)
+        choose whether to create a sub-folder for the object(s) or save the
+        table into the current directory
 
     """
 
@@ -33,11 +38,15 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0):
     for obj in obj_list:
 
         #make new folders for each of the objects
-        if not os.path.exists(obj):
-            os.mkdir(obj)
+        if create_folder:
+            if not os.path.exists(obj):
+                os.mkdir(obj)
 
         # file name to save the table
-        output_file = obj + '/heasarc_obs.dat'
+        if create_folder:
+            output_file = obj + '/heasarc_obs.dat'
+        else:
+            output_file = obj+'_heasarc_obs.dat'
 
         # command to generate HEASARC query
         #cmd = 'browse_extract_wget.pl table=swiftmastr position=' \
