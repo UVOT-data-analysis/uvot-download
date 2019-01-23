@@ -123,7 +123,7 @@ def download_heasarc(heasarc_files, unzip=True):
         if unzip:
             print('* unzipping files')
             for i in id_list:
-                gz_files = glob.glob(os.path.dirname(filename)+'/'+i+'/**/*.gz', recursive=True)
+                gz_files = glob.glob(save_path+'/'+i+'/**/*.gz', recursive=True)
                 for gz in gz_files:
                     subprocess.run('gunzip '+gz, shell=True)
     
