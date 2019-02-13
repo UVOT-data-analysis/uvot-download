@@ -6,7 +6,7 @@ import urllib.request
 
 import pdb
 
-def query_heasarc(input_obj, list_opt=None, search_radius=7.0,
+def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
                       create_folder=True, table_params=['obsid','start_time']):
     """
     Find observations of a target in HEASARC
@@ -35,7 +35,7 @@ def query_heasarc(input_obj, list_opt=None, search_radius=7.0,
     """
 
     #condition that handles either a list of entries from a file that needs to be loaded or a single object put into a list
-    if list_opt is not None:
+    if list_opt is not False:
         obj_list = np.loadtxt(input_obj, dtype = 'str').tolist()
         #print('expect a list and do list things')
     else:
