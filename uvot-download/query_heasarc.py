@@ -39,7 +39,10 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
         obj_list = np.loadtxt(input_obj, dtype = 'str').tolist()
         #print('expect a list and do list things')
     else:
-        obj_list = [input_obj]
+        if type(input_obj) == str:
+            obj_list = [input_obj]
+        if type(input_obj) == list:
+            obj_list = input_obj
 
     # ensure 'obsid' and 'start_time' are in table_params
     if 'obsid' not in table_params:
