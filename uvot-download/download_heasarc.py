@@ -38,12 +38,13 @@ def download_heasarc(heasarc_files, unzip=True):
         with open(filename, 'r') as fh:
             rows_list = fh.readlines()
 
-        if len(rows_list) == 1:
+        # the file has 2 lines if there aren't any observations
+        if len(rows_list) == 2:
             print("No observations of " + gal_name + " were found in HEASARC.")
-            dir_path = '*/*/*/' + gal
+            dir_path = os.path.dirname(filename)
             r = glob.glob(dir_path)
-            for i in r:
-                os.remove(i)
+            #for i in r:
+            #    os.remove(i)
             continue
 
         # extract the columns that were saved
