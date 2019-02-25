@@ -5,7 +5,7 @@ import subprocess
 import pdb
 
 
-def download_heasarc(heasarc_files, unzip=True):
+def download_heasarc(heasarc_files, unzip=True, download_all=False):
     """
     Using the observation table from query_heasarc, create a download script,
     download the data, and unzip everything.  All files will be saved into the
@@ -19,6 +19,10 @@ def download_heasarc(heasarc_files, unzip=True):
 
     unzip : boolean (default=True)
         Choose whether to unzip all of the downloaded files
+
+    download_all : boolean (default=False)
+        If True, download all data.  If False, only download new data (as
+        determined by existence of a folder with the relevant obsid).
 
     """
 
@@ -93,9 +97,13 @@ def download_heasarc(heasarc_files, unzip=True):
             wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
             wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
 
-            with open(download_file, 'a') as download_scr:
-                download_scr.write(wget_uvot + '\n')
-                download_scr.write(wget_auxil + '\n')
+            # only add this observation to the script if:
+            # - folder for this obsid doesn't exist
+            # - folder does exist, but download_all is True
+            if (not os.path.isdir(save_path+'/'+obsid)) or (os.path.isdir(save_path+'/'+obsid) and download_all==True):
+                with open(download_file, 'a') as download_scr:
+                    download_scr.write(wget_uvot + '\n')
+                    download_scr.write(wget_auxil + '\n')
             
         elif len(obslist[0]) == 0:
             print("* Search of table swiftmastr around "+gal_name+" returns 0 rows.")
@@ -117,15 +125,24 @@ def download_heasarc(heasarc_files, unzip=True):
                 wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
                 wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
 
-                with open(download_file, 'a') as download_scr:
-                    download_scr.write(wget_uvot + '\n')
-                    download_scr.write(wget_auxil + '\n')
+                # only add this observation to the script if:
+                # - folder for this obsid doesn't exist
+                # - folder does exist, but download_all is True
+                if (not os.path.isdir(save_path+'/'+obsid)) or (os.path.isdir(save_path+'/'+obsid) and download_all==True):
+                    with open(download_file, 'a') as download_scr:
+                        download_scr.write(wget_uvot + '\n')
+                        download_scr.write(wget_auxil + '\n')
 
         #run the download script here and put the results in the directories created at the beginning of the list
 
-        #make download script executable
-        print("* running download script for "+gal_name)
-        os.system('sh '+download_file)
+
+        # run download script
+        # (but only if there are items to download)
+        if os.path.isfile(download_file):
+            print("* running download script for "+gal_name)
+            os.system('sh '+download_file)
+        else:
+            print('* no new observations of '+gal_name+' to download')
 
         #unzip all the downloaded data
         if unzip:
@@ -133,6 +150,8 @@ def download_heasarc(heasarc_files, unzip=True):
             for i in id_list:
                 gz_files = glob.glob(save_path+'/'+i+'/**/*.gz', recursive=True)
                 for gz in gz_files:
-                    subprocess.run('gunzip '+gz, shell=True)
+                    # only unzip if the unzipped file doesn't exist
+                    if not os.path.isfile(gz[:-3]):
+                        subprocess.run('gunzip '+gz, shell=True)
     
 
