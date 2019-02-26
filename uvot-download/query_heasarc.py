@@ -91,7 +91,7 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
                 rows_list = hf.readlines()
 
             # error -> try other name resolver
-            if 'ERROR' in rows_list[0]:
+            if 'ERROR' in rows_list[0].upper():
                 print('trying other name resolver')
                 continue
             # no error -> finish
