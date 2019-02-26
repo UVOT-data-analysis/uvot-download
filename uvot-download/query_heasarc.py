@@ -68,22 +68,35 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
         #cmd = 'browse_extract_wget.pl table=swiftmastr position=' \
         #              + obj + ' radius='+str(search_radius) \
         #              +' fields=obsid,start_time outfile=data.dat'
-        cmd = 'wget -O - -o /dev/null --no-check-certificate ' + "'" \
+
+        for NR in ['NED','SIMBAD']:
+            cmd = 'wget -O - -o /dev/null --no-check-certificate ' + "'" \
               'https://heasarc.gsfc.nasa.gov/db-perl/W3Browse/w3query.pl?' + \
               'tablehead='+urllib.request.quote('name=BATCHRETRIEVALCATALOG_2.0 swiftmastr') + \
               '&Action=Query' + \
               '&Coordinates='+urllib.request.quote("'Equatorial: R.A. Dec'") + \
               '&Equinox=2000' + \
               '&Radius='+str(search_radius) + \
-              '&NR=SIMBAD' + \
+              '&NR='+NR + \
               '&GIFsize=0' + \
               '&Fields=&varon='+'&varon='.join(table_params) + \
               '&Entry='+urllib.request.quote(obj) + \
               '&displaymode=BatchDisplay' + \
               "' > " + output_file
               
-        os.system(cmd)
+            os.system(cmd)
 
+            # read in the query output to make sure it worked
+            with open(output_file, 'r') as hf:
+                rows_list = hf.readlines()
+
+            # error -> try other name resolver
+            if 'ERROR' in rows_list[0]:
+                print('trying other name resolver')
+                continue
+            # no error -> finish
+            else:
+                return
 
 
 def main():
