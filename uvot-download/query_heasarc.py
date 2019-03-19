@@ -7,7 +7,8 @@ import urllib.request
 import pdb
 
 def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
-                      create_folder=True, table_params=['obsid','start_time']):
+                      create_folder=True,
+                      table_params=['obsid','start_time','uvot_expo_w2','uvot_expo_m2','uvot_expo_w1']):
     """
     Find observations of a target in HEASARC
 
@@ -44,12 +45,10 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
         if type(input_obj) == list:
             obj_list = input_obj
 
-    # ensure 'obsid' and 'start_time' are in table_params
-    if 'obsid' not in table_params:
-        table_params.append('obsid')
-    if 'start_time' not in table_params:
-        table_params.append('start_time')
-    
+    # ensure defaults are in table_params
+    for col in ['obsid','start_time','uvot_expo_w2','uvot_expo_m2','uvot_expo_w1']:
+        if col not in table_params:
+            table_params.append(col)    
     
     for obj in obj_list:
 
