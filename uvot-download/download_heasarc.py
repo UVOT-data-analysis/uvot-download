@@ -7,7 +7,7 @@ from astropy.io import ascii
 
 
 def download_heasarc(heasarc_files, unzip=True, download_all=False,
-                         download_filters=None):
+                         download_filters=None, min_exp=0.0):
     """
     Using the observation table from query_heasarc, create a download script,
     download the data, and unzip everything.  All files will be saved into the
@@ -33,6 +33,13 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False,
         If a filter is requested but the info isn't in the heasarc_file, it
         will be assumed that observations in that filter exist.  When set to
         the default (None), all data will be downloaded.
+
+    min_exp : float (default=0.0)
+        Only download data if the exposure time (for at least one filter) is
+        longer than this.  This is intended for objects that have been
+        observed many times and you don't need ALL of the data because it
+        will take an absurd amount of time to download/process (e.g., M81).
+        This check is undertaken after the check for download_filters.
 
     """
 
@@ -69,7 +76,8 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False,
             continue
 
         # read heasarc table with astropy table!
-        heasarc_table = ascii.read(filename, format='fixed_width_two_line', comment='B', delimiter='+')
+        heasarc_table = ascii.read(filename, format='fixed_width_two_line', comment='B', delimiter='+',
+                                       converters={'obsid':[ascii.convert_numpy(np.str)]})
 
 
         # path where things will get saved
@@ -93,8 +101,14 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False,
                 filter_check = download_filter_check(heasarc_table[i], download_filters)
                 if filter_check == False:
                     continue
+
+            # check for minimum exposure time
+            exp_check = min_exp_check(heasarc_table[i], min_exp)
+            if exp_check == False:
+                continue
             
-            obsid = str(heasarc_table['obsid'][i])
+            
+            obsid = heasarc_table['obsid'][i]
             starttime = heasarc_table['start_time'][i]
         
             start_month = starttime[0:7]
@@ -126,7 +140,7 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False,
         #unzip all the downloaded data
         if unzip:
             print('* unzipping files')
-            for i in id_list:
+            for i in heasarc_table['obsid']:
                 gz_files = glob.glob(save_path+'/'+i+'/**/*.gz', recursive=True)
                 for gz in gz_files:
                     # only unzip if the unzipped file doesn't exist
@@ -138,7 +152,7 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False,
 
 def download_filter_check(heasarc_table, download_filters):
     """
-    Quick wrapper to do the checking for whether to download a given observation
+    Check if observations in the specified filters are present
     """
 
     download_data = [True] * len(download_filters)
@@ -153,3 +167,33 @@ def download_filter_check(heasarc_table, download_filters):
         return True
     else:
         return False
+
+
+def min_exp_check(heasarc_table, min_exp):
+    """
+    Check if there are exposures above the min_exp threshold
+    """
+
+    exp_colnames = []
+
+    # figure out if there's exposure time info available
+    for col in heasarc_table.colnames:
+        if 'uvot_expo_' in col:
+            exp_colnames.append(col)
+    
+    # if there isn't info, return True
+    if len(exp_colnames) == 0:
+        return True
+
+
+    # if exposure time(s) are available, check if they're bigger than min_exp
+    for col in exp_colnames:
+        if heasarc_table[col] >= min_exp:
+            # if it is bigger, return True
+            return True
+
+    # if we get to this point, it's because none of the exposure times are long
+    # enough to trigger the "return True"
+    return False
+
+        
