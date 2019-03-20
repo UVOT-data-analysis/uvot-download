@@ -32,9 +32,10 @@ Use ``query_heasarc.py`` to determine what observations exist.  Here is an examp
     |00084312014|2019-02-24T18:56:36|   225.76700|   225.77800|   213.73000| 2.9978|
     |00084312012|2018-12-30T21:03:34|   272.76700|   272.76700|   256.39400| 3.0588|
     |00084312004|2016-06-25T02:29:58|   662.53800|   662.54900|   642.95400| 3.0910|
-    
+ 
  To save to a file instead (automatically named ``DDO68_heasarc_obs.dat``):
-    >>> query_heasarc.query_heasarc('DDO68', search_radius=5, create_folder=False)   # 5 arcmin
+ 
+    >>> query_heasarc.query_heasarc('DDO68', search_radius=7, create_folder=False)
 
 
 Use ``download_heasarc.py`` to use a saved table to download the data.
@@ -42,7 +43,7 @@ Use ``download_heasarc.py`` to use a saved table to download the data.
     >>> import download_heasarc
     >>> download_heasarc.download_heasarc('DDO68_heasarc_obs.dat')
 
-If you've already downloaded some data, but new observations have been taken since then, ``download_heasarc`` will only download the new data (this can be overridden with `download_all=True`).  FITS files from HEASARC are gzipped, so the code will also automatically unzip them (unless ``unzip=False``).
+If you've already downloaded some data, but new observations have been taken since then, ``download_heasarc`` will only download the new data (this can be overridden with ``download_all=True``).  FITS files from HEASARC are gzipped, so the code will also automatically unzip them (unless ``unzip=False``).
 
 
 
