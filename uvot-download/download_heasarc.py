@@ -6,7 +6,8 @@ import pdb
 from astropy.io import ascii
 
 
-def download_heasarc(heasarc_files, unzip=True, download_all=False):
+def download_heasarc(heasarc_files, unzip=True, download_all=False,
+                         download_filters=None):
     """
     Using the observation table from query_heasarc, create a download script,
     download the data, and unzip everything.  All files will be saved into the
@@ -25,6 +26,14 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
         If True, download all data.  If False, only download new data (as
         determined by existence of a folder with the relevant obsid).
 
+    download_filters : list of strings (default=None)
+        Only download data for a given obsid if one of these filters is
+        present.  Allowed filters are:
+          w2, m2, w1, uu, bb, vv, wh, gu, gv
+        If a filter is requested but the info isn't in the heasarc_file, it
+        will be assumed that observations in that filter exist.  When set to
+        the default (None), all data will be downloaded.
+
     """
 
     # check if input is string or list
@@ -33,6 +42,13 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
     if type(heasarc_files) == list:
         file_list = heasarc_files
 
+    # check that download_filters is set properly
+    if download_filters is not None:
+        for item in download_filters:
+            if item not in ['w2','m2','w1','uu','bb','vv','wh','gu','gv']:
+                print(item, ' is not allowed in download_filters')
+                return
+    
 
     for filename in file_list:
 
@@ -53,7 +69,7 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
             continue
 
         # read heasarc table with astropy table!
-        heasarc_table = ascii.read('heasarc_obs.dat', format='fixed_width_two_line', comment='B', delimiter='+')
+        heasarc_table = ascii.read(filename, format='fixed_width_two_line', comment='B', delimiter='+')
 
 
         # path where things will get saved
@@ -71,13 +87,18 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
                        
 
         for i in range(len(heasarc_table)):
+           
+            # if user only wants to download some filters, do corresponding checks
+            if download_filters is not None:
+                filter_check = download_filter_check(heasarc_table[i], download_filters)
+                if filter_check == False:
+                    continue
             
-            obsid = heasarc_table['obsid'][i]
+            obsid = str(heasarc_table['obsid'][i])
             starttime = heasarc_table['start_time'][i]
         
             start_month = starttime[0:7]
             start_month = start_month.replace('-','_')
-            id_list.append(obsid)
         
             #    string addition to make wget commands for data download
             wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
@@ -113,4 +134,22 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
                         subprocess.run('gunzip '+gz, shell=True)
     
 
-    
+
+
+def download_filter_check(heasarc_table, download_filters):
+    """
+    Quick wrapper to do the checking for whether to download a given observation
+    """
+
+    download_data = [True] * len(download_filters)
+
+    for f,filt in enumerate(download_filters):
+
+        if 'uvot_expo_'+filt in heasarc_table.colnames:
+            if heasarc_table['uvot_expo_'+filt] < 1e-2:
+                download_data[f] = False
+
+    if True in download_data:
+        return True
+    else:
+        return False
