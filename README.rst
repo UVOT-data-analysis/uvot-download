@@ -17,8 +17,11 @@ Use `query_heasarc.py` to determine what observations exist.  Here is an example
 
 ```
 >>> import query_heasarc
+
 >>> # display observations:
+
 >>> query_heasarc.query_heasarc('DDO68', search_radius=7, display_table=True)
+
 |obsid      |start_time         |uvot_expo_w2|uvot_expo_m2|uvot_expo_w1|_offset|
 +-----------+-------------------+------------+------------+------------+-------+
 |00084312006|2018-01-23T16:47:57|   108.76300|   108.78500|   116.24300| 0.4555|
@@ -36,14 +39,18 @@ Use `query_heasarc.py` to determine what observations exist.  Here is an example
 |00084312004|2016-06-25T02:29:58|   662.53800|   662.54900|   642.95400| 3.0910|
 
 >>> save to file instead (automatically named DDO68_heasarc_obs.dat):
+
 >>> query_heasarc.query_heasarc('DDO68', search_radius=5, create_folder=False)   # 5 arcmin
+
 ```
 
 Use `download_heasarc.py` to use a saved table to download the data.
 
 ```
 >>> import download_heasarc
+
 >>> download_heasarc.download_heasarc('DDO68_heasarc_obs.dat')
+
 ```
 If you've already downloaded some data, but new observations have been taken since then, `download_heasarc` will only download the new data (this can be overridden with `download_all=True`).  FITS files from HEASARC are gzipped, so the code will also automatically unzip them (unless `unzip=False`).
 
