@@ -59,7 +59,7 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
     for obj in obj_list:
 
         #make new folders for each of the objects
-        if create_folder:
+        if (create_folder == True) and (display_table == False):
             if not os.path.exists(obj):
                 os.mkdir(obj)
 
