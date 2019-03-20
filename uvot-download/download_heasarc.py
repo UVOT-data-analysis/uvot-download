@@ -3,9 +3,11 @@ import os
 import glob
 import subprocess
 import pdb
+from astropy.io import ascii
 
 
-def download_heasarc(heasarc_files, unzip=True, download_all=False):
+def download_heasarc(heasarc_files, unzip=True, download_all=False,
+                         download_filters=None, min_exp=0.0):
     """
     Using the observation table from query_heasarc, create a download script,
     download the data, and unzip everything.  All files will be saved into the
@@ -24,6 +26,21 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
         If True, download all data.  If False, only download new data (as
         determined by existence of a folder with the relevant obsid).
 
+    download_filters : list of strings (default=None)
+        Only download data for a given obsid if one of these filters is
+        present.  Allowed filters are:
+          w2, m2, w1, uu, bb, vv, wh, gu, gv
+        If a filter is requested but the info isn't in the heasarc_file, it
+        will be assumed that observations in that filter exist.  When set to
+        the default (None), all data will be downloaded.
+
+    min_exp : float (default=0.0)
+        Only download data if the exposure time (for at least one filter) is
+        longer than this.  This is intended for objects that have been
+        observed many times and you don't need ALL of the data because it
+        will take an absurd amount of time to download/process (e.g., M81).
+        This check is undertaken after the check for download_filters.
+
     """
 
     # check if input is string or list
@@ -32,6 +49,13 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
     if type(heasarc_files) == list:
         file_list = heasarc_files
 
+    # check that download_filters is set properly
+    if download_filters is not None:
+        for item in download_filters:
+            if item not in ['w2','m2','w1','uu','bb','vv','wh','gu','gv']:
+                print(item, ' is not allowed in download_filters')
+                return
+    
 
     for filename in file_list:
 
@@ -51,24 +75,10 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
             #    os.remove(i)
             continue
 
-        # extract the columns that were saved
-        table_cols = [col.strip() for col in rows_list[1].split('|') if (col != '' and col != '\n')]
-        # the last one is always '_offset', which we don't care about
-        table_cols = table_cols[0:-1]
+        # read heasarc table with astropy table!
+        heasarc_table = ascii.read(filename, format='fixed_width_two_line', comment='B', delimiter='+',
+                                       converters={'obsid':[ascii.convert_numpy(np.str)]})
 
-        #important inputs for loadtxt:
-        #comments: comments out last line that lists number of observations returned for an object
-        #skiprows: skips first two rows in data.dat that are just for formatting
-
-        #obslist = np.loadtxt(filename, dtype = 'str', delimiter = '|',
-        #                         comments = 'S', skiprows = 2, usecols = (1,2)).tolist()
-        obslist = np.loadtxt(filename, dtype = 'str', delimiter = '|',
-                                 skiprows=3, comments='B',
-                                 usecols = tuple(np.arange(0,len(table_cols))+1) ).tolist()
-        id_list = list()
-
-        #if obslist is empty:
-        #    continue to next obj in obj_list, though if there's nothing that comes next, will it just end the program?
 
         # path where things will get saved
         save_path = '/'.join( os.path.realpath(filename).split('/')[:-1] )
@@ -82,18 +92,29 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
         # make sure download script doesn't exist
         if os.path.isfile(download_file):
             os.remove(download_file)
-            
+                       
 
-        #condition that handles cases where HEASARC query returns only one row or zero rows
-        if type(obslist[0]) == str:
-            #print(obslist)
-            obsid = obslist[0]
-            starttime = obslist[1]
+        for i in range(len(heasarc_table)):
+           
+            # if user only wants to download some filters, do corresponding checks
+            if download_filters is not None:
+                filter_check = download_filter_check(heasarc_table[i], download_filters)
+                if filter_check == False:
+                    continue
+
+            # check for minimum exposure time
+            exp_check = min_exp_check(heasarc_table[i], min_exp)
+            if exp_check == False:
+                continue
+            
+            
+            obsid = heasarc_table['obsid'][i]
+            starttime = heasarc_table['start_time'][i]
+        
             start_month = starttime[0:7]
             start_month = start_month.replace('-','_')
-            id_list.append(obsid)
-
-        #    string addition to make wget commands for data download
+        
+            #    string addition to make wget commands for data download
             wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
             wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
 
@@ -104,34 +125,6 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
                 with open(download_file, 'a') as download_scr:
                     download_scr.write(wget_uvot + '\n')
                     download_scr.write(wget_auxil + '\n')
-            
-        elif len(obslist[0]) == 0:
-            print("* Search of table swiftmastr around "+gal_name+" returns 0 rows.")
-            print("* Looks like there's no observation data for this object.")
-            print("* Check to make sure that this object has been observed. Moving on...")
-            continue
-
-        else:
-            for i in range(len(obslist)):
-                #print(obslist[i])
-                obsid = obslist[i][table_cols.index('obsid')]
-                starttime = obslist[i][table_cols.index('start_time')]
-        
-                start_month = starttime[0:7]
-                start_month = start_month.replace('-','_')
-                id_list.append(obsid)
-        
-            #    string addition to make wget commands for data download
-                wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
-                wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
-
-                # only add this observation to the script if:
-                # - folder for this obsid doesn't exist
-                # - folder does exist, but download_all is True
-                if (not os.path.isdir(save_path+'/'+obsid)) or (os.path.isdir(save_path+'/'+obsid) and download_all==True):
-                    with open(download_file, 'a') as download_scr:
-                        download_scr.write(wget_uvot + '\n')
-                        download_scr.write(wget_auxil + '\n')
 
         #run the download script here and put the results in the directories created at the beginning of the list
 
@@ -147,7 +140,7 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
         #unzip all the downloaded data
         if unzip:
             print('* unzipping files')
-            for i in id_list:
+            for i in heasarc_table['obsid']:
                 gz_files = glob.glob(save_path+'/'+i+'/**/*.gz', recursive=True)
                 for gz in gz_files:
                     # only unzip if the unzipped file doesn't exist
@@ -155,3 +148,52 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
                         subprocess.run('gunzip '+gz, shell=True)
     
 
+
+
+def download_filter_check(heasarc_table, download_filters):
+    """
+    Check if observations in the specified filters are present
+    """
+
+    download_data = [True] * len(download_filters)
+
+    for f,filt in enumerate(download_filters):
+
+        if 'uvot_expo_'+filt in heasarc_table.colnames:
+            if heasarc_table['uvot_expo_'+filt] < 1e-2:
+                download_data[f] = False
+
+    if True in download_data:
+        return True
+    else:
+        return False
+
+
+def min_exp_check(heasarc_table, min_exp):
+    """
+    Check if there are exposures above the min_exp threshold
+    """
+
+    exp_colnames = []
+
+    # figure out if there's exposure time info available
+    for col in heasarc_table.colnames:
+        if 'uvot_expo_' in col:
+            exp_colnames.append(col)
+    
+    # if there isn't info, return True
+    if len(exp_colnames) == 0:
+        return True
+
+
+    # if exposure time(s) are available, check if they're bigger than min_exp
+    for col in exp_colnames:
+        if heasarc_table[col] >= min_exp:
+            # if it is bigger, return True
+            return True
+
+    # if we get to this point, it's because none of the exposure times are long
+    # enough to trigger the "return True"
+    return False
+
+        
