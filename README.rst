@@ -34,7 +34,7 @@ Use ``query_heasarc.py`` to determine what observations exist.  Here is an examp
     |00084312004|2016-06-25T02:29:58|   662.53800|   662.54900|   642.95400| 3.0910|
 
 
- To save to a file instead (automatically named ``DDO68_heasarc_obs.dat``):
+To save to a file instead (automatically named ``DDO68_heasarc_obs.dat``):
 
     >>> query_heasarc.query_heasarc('DDO68', search_radius=7, create_folder=False)
 
