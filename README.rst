@@ -32,9 +32,10 @@ Use ``query_heasarc.py`` to determine what observations exist.  Here is an examp
     |00084312014|2019-02-24T18:56:36|   225.76700|   225.77800|   213.73000| 2.9978|
     |00084312012|2018-12-30T21:03:34|   272.76700|   272.76700|   256.39400| 3.0588|
     |00084312004|2016-06-25T02:29:58|   662.53800|   662.54900|   642.95400| 3.0910|
- 
+
+
  To save to a file instead (automatically named ``DDO68_heasarc_obs.dat``):
- 
+
     >>> query_heasarc.query_heasarc('DDO68', search_radius=7, create_folder=False)
 
 
