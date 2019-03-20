@@ -3,6 +3,7 @@ import os
 import glob
 import subprocess
 import pdb
+from astropy.io import ascii
 
 
 def download_heasarc(heasarc_files, unzip=True, download_all=False):
@@ -51,24 +52,9 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
             #    os.remove(i)
             continue
 
-        # extract the columns that were saved
-        table_cols = [col.strip() for col in rows_list[1].split('|') if (col != '' and col != '\n')]
-        # the last one is always '_offset', which we don't care about
-        table_cols = table_cols[0:-1]
+        # read heasarc table with astropy table!
+        heasarc_table = ascii.read('heasarc_obs.dat', format='fixed_width_two_line', comment='B', delimiter='+')
 
-        #important inputs for loadtxt:
-        #comments: comments out last line that lists number of observations returned for an object
-        #skiprows: skips first two rows in data.dat that are just for formatting
-
-        #obslist = np.loadtxt(filename, dtype = 'str', delimiter = '|',
-        #                         comments = 'S', skiprows = 2, usecols = (1,2)).tolist()
-        obslist = np.loadtxt(filename, dtype = 'str', delimiter = '|',
-                                 skiprows=3, comments='B',
-                                 usecols = tuple(np.arange(0,len(table_cols))+1) ).tolist()
-        id_list = list()
-
-        #if obslist is empty:
-        #    continue to next obj in obj_list, though if there's nothing that comes next, will it just end the program?
 
         # path where things will get saved
         save_path = '/'.join( os.path.realpath(filename).split('/')[:-1] )
@@ -82,18 +68,18 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
         # make sure download script doesn't exist
         if os.path.isfile(download_file):
             os.remove(download_file)
-            
+                       
 
-        #condition that handles cases where HEASARC query returns only one row or zero rows
-        if type(obslist[0]) == str:
-            #print(obslist)
-            obsid = obslist[0]
-            starttime = obslist[1]
+        for i in range(len(heasarc_table)):
+            
+            obsid = heasarc_table['obsid'][i]
+            starttime = heasarc_table['start_time'][i]
+        
             start_month = starttime[0:7]
             start_month = start_month.replace('-','_')
             id_list.append(obsid)
-
-        #    string addition to make wget commands for data download
+        
+            #    string addition to make wget commands for data download
             wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
             wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
 
@@ -104,34 +90,6 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
                 with open(download_file, 'a') as download_scr:
                     download_scr.write(wget_uvot + '\n')
                     download_scr.write(wget_auxil + '\n')
-            
-        elif len(obslist[0]) == 0:
-            print("* Search of table swiftmastr around "+gal_name+" returns 0 rows.")
-            print("* Looks like there's no observation data for this object.")
-            print("* Check to make sure that this object has been observed. Moving on...")
-            continue
-
-        else:
-            for i in range(len(obslist)):
-                #print(obslist[i])
-                obsid = obslist[i][table_cols.index('obsid')]
-                starttime = obslist[i][table_cols.index('start_time')]
-        
-                start_month = starttime[0:7]
-                start_month = start_month.replace('-','_')
-                id_list.append(obsid)
-        
-            #    string addition to make wget commands for data download
-                wget_uvot = wget_prefix + start_month + '//' + obsid + "/uvot/"
-                wget_auxil = wget_prefix + start_month + '//' + obsid + "/auxil/"
-
-                # only add this observation to the script if:
-                # - folder for this obsid doesn't exist
-                # - folder does exist, but download_all is True
-                if (not os.path.isdir(save_path+'/'+obsid)) or (os.path.isdir(save_path+'/'+obsid) and download_all==True):
-                    with open(download_file, 'a') as download_scr:
-                        download_scr.write(wget_uvot + '\n')
-                        download_scr.write(wget_auxil + '\n')
 
         #run the download script here and put the results in the directories created at the beginning of the list
 
@@ -155,3 +113,4 @@ def download_heasarc(heasarc_files, unzip=True, download_all=False):
                         subprocess.run('gunzip '+gz, shell=True)
     
 
+    
