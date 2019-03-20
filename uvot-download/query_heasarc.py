@@ -59,7 +59,7 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
     for obj in obj_list:
 
         #make new folders for each of the objects
-        if create_folder:
+        if (create_folder == True) and (display_table == False):
             if not os.path.exists(obj):
                 os.mkdir(obj)
 
@@ -108,21 +108,23 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
 
             # error -> try other name resolver
             if ('ERROR' in rows_list[0].upper()) and (NR != NR_list[-1]):
-                print('could not resolve with '+NR+', trying next name resolver')
+                print('could not resolve '+obj+' with '+NR+', trying next name resolver')
                 continue
             # error, but already tried all name resolvers
             elif ('ERROR' in rows_list[0].upper()) and (NR == NR_list[-1]):
-                print('could not resolve with '+NR)
+                print('could not resolve '+obj+' with '+NR)
                 print('failed to resolve '+obj)
-                return
+                continue
             # no error -> finish
             else:
                 if len(rows_list) == 3:
-                    print('No observations of '+obj+' found in HEASARC (check Quick Look page for recent observations)')
-                if display_table == True:
-                    for row in rows_list[1:-3]:
+                    print('No observations of '+obj+' found in HEASARC (check Quick Look page for any recent observations)')
+                if (display_table == True) and (len(rows_list) > 3):
+                    print('\n'+obj+'\n')
+                    for row in rows_list[1:-2]:
                         print(row)
-                return
+                    print('')
+                break
 
 
 def main():
