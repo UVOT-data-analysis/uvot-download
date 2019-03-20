@@ -3,12 +3,14 @@ import os
 import argparse
 import sys
 import urllib.request
+import subprocess
 
 import pdb
 
 def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
                       create_folder=True,
-                      table_params=['obsid','start_time','uvot_expo_w2','uvot_expo_m2','uvot_expo_w1']):
+                      table_params=['obsid','start_time','uvot_expo_w2','uvot_expo_m2','uvot_expo_w1'],
+                      display_table=False):
     """
     Find observations of a target in HEASARC
 
@@ -32,6 +34,10 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
         default params will be included in all queries.  More info (including
         allowed params) here:
         https://heasarc.gsfc.nasa.gov/W3Browse/swift/swiftmastr.html
+
+    display_table : boolean (default=False)
+        If True, instead of saving the table to a file, display it in the
+        terminal window.  Useful for quick checks of observations.
 
     """
 
@@ -63,12 +69,20 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
         else:
             output_file = obj+'_heasarc_obs.dat'
 
+        # but if it's going to be displayed, the end of the command needs modifying
+        if display_table == False:
+            save_cmd = ' > ' + output_file
+        else:
+            save_cmd = ''
+
         # command to generate HEASARC query
         #cmd = 'browse_extract_wget.pl table=swiftmastr position=' \
         #              + obj + ' radius='+str(search_radius) \
         #              +' fields=obsid,start_time outfile=data.dat'
 
-        for NR in ['NED','SIMBAD']:
+        NR_list = ['NED','SIMBAD']
+            
+        for NR in NR_list:
             cmd = 'wget -O - -o /dev/null --no-check-certificate ' + "'" \
               'https://heasarc.gsfc.nasa.gov/db-perl/W3Browse/w3query.pl?' + \
               'tablehead='+urllib.request.quote('name=BATCHRETRIEVALCATALOG_2.0 swiftmastr') + \
@@ -80,21 +94,34 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
               '&GIFsize=0' + \
               '&Fields=&varon='+'&varon='.join(table_params) + \
               '&Entry='+urllib.request.quote(obj) + \
-              '&displaymode=BatchDisplay' + \
-              "' > " + output_file
-              
-            os.system(cmd)
+              '&displaymode=BatchDisplay' + "'" + save_cmd
 
+            # run the command
+            wget_output = subprocess.run(cmd + save_cmd, stdout=subprocess.PIPE, shell=True)
+              
             # read in the query output to make sure it worked
-            with open(output_file, 'r') as hf:
-                rows_list = hf.readlines()
+            if display_table == False:
+                with open(output_file, 'r') as hf:
+                    rows_list = hf.readlines()
+            else:
+                rows_list = wget_output.stdout.decode('utf-8').split('\n')
 
             # error -> try other name resolver
-            if 'ERROR' in rows_list[0].upper():
-                print('trying other name resolver')
+            if ('ERROR' in rows_list[0].upper()) and (NR != NR_list[-1]):
+                print('could not resolve with '+NR+', trying next name resolver')
                 continue
+            # error, but already tried all name resolvers
+            elif ('ERROR' in rows_list[0].upper()) and (NR == NR_list[-1]):
+                print('could not resolve with '+NR)
+                print('failed to resolve '+obj)
+                return
             # no error -> finish
             else:
+                if len(rows_list) == 3:
+                    print('No observations of '+obj+' found in HEASARC (check Quick Look page for recent observations)')
+                if display_table == True:
+                    for row in rows_list[1:-3]:
+                        print(row)
                 return
 
 
