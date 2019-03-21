@@ -58,16 +58,19 @@ def query_heasarc(input_obj, list_opt=False, search_radius=7.0,
     
     for obj in obj_list:
 
+        # replace any spaces with underscores for saving things
+        obj_nospace = obj.replace(' ','_')
+
         #make new folders for each of the objects
         if (create_folder == True) and (display_table == False):
-            if not os.path.exists(obj):
-                os.mkdir(obj)
+            if not os.path.exists(obj_nospace):
+                os.mkdir(obj_nospace)
 
         # file name to save the table
         if create_folder:
-            output_file = obj + '/heasarc_obs.dat'
+            output_file = obj_nospace + '/heasarc_obs.dat'
         else:
-            output_file = obj+'_heasarc_obs.dat'
+            output_file = obj_nospace+'_heasarc_obs.dat'
 
         # but if it's going to be displayed, the end of the command needs modifying
         if display_table == False:
