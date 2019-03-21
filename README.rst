@@ -38,6 +38,29 @@ To save to a file instead (automatically named ``DDO68_heasarc_obs.dat``):
 
     >>> query_heasarc.query_heasarc('DDO68', search_radius=7, create_folder=False)
 
+You can also query using coordinates (or any other format allowed on the HEASARC website).  Here is an example with NGC24 (which has observations) and Leoncino (which does not have observations).
+
+    >>> query_heasarc.query_heasarc('00h09m56.5s -24d57m47s', search_radius=10, display_table=True)
+    00h09m56.5s -24d57m47s
+    
+    |obsid      |start_time         |uvot_expo_w2|uvot_expo_m2|uvot_expo_w1|_offset|
+    +-----------+-------------------+------------+------------+------------+-------+
+    |00045594006|2012-10-21T10:01:58|  2162.60700|  2162.65100|  1952.97000| 0.7272|
+    |00045594009|2012-11-09T23:56:59|    53.76300|    53.78500|    49.65900| 1.1321|
+    |00045594011|2012-11-15T09:43:59|   174.77200|   174.77200|   171.60600| 1.5419|
+    |00045594007|2012-10-24T10:07:59|     0.00000|     0.00000|     0.00000| 1.8431|
+    |00045594008|2012-11-07T02:53:59|   247.53500|   247.54600|   200.19200| 1.9819|
+    |00045594013|2012-11-18T17:55:59|  2100.60200|  2100.64600|  2012.14000| 2.0059|
+    |00045594001|2011-09-19T10:38:00|   513.77000|   513.77000|   459.95100| 2.0234|
+    |00045594010|2012-11-13T19:15:59|   133.77400|   133.77400|    79.34900| 2.2041|
+    |00045594005|2012-04-25T11:29:00|  1381.29900|  1381.33200|  1267.16400| 2.3406|
+    |00045594012|2012-11-16T22:32:59|   387.53100|   387.55300|   371.68800| 2.3504|
+    |00045594004|2012-04-24T08:10:00|  2290.84200|  2290.89700|  2063.00100| 3.7228|
+    |00045594003|2012-01-27T08:53:00|   131.66700|     0.00000|     0.00000| 4.6665|
+    |00045594002|2011-09-20T22:16:00|     0.00000|     0.00000|     0.00000| 7.5074|
+    
+    No observations of 09h43m32.4s +33d26m58s found in HEASARC (check Quick Look page for any recent observations)
+
 
 Use ``download_heasarc.py`` to use a saved table to download the data.
 
