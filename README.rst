@@ -40,7 +40,7 @@ To save to a file instead (automatically named ``DDO68_heasarc_obs.dat``):
 
 You can also query using coordinates (or any other format allowed on the HEASARC website).  Here is an example with NGC24 (which has observations) and Leoncino (which does not have observations).
 
-    >>> query_heasarc.query_heasarc('00h09m56.5s -24d57m47s', search_radius=10, display_table=True)
+    >>> query_heasarc.query_heasarc(['00h09m56.5s -24d57m47s', '09h43m32.4s +33d26m58s'], display_table=True, search_radius=12)
     00h09m56.5s -24d57m47s
     .
     |obsid      |start_time         |uvot_expo_w2|uvot_expo_m2|uvot_expo_w1|_offset|
