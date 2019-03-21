@@ -42,7 +42,7 @@ You can also query using coordinates (or any other format allowed on the HEASARC
 
     >>> query_heasarc.query_heasarc('00h09m56.5s -24d57m47s', search_radius=10, display_table=True)
     00h09m56.5s -24d57m47s
-     
+    .
     |obsid      |start_time         |uvot_expo_w2|uvot_expo_m2|uvot_expo_w1|_offset|
     +-----------+-------------------+------------+------------+------------+-------+
     |00045594006|2012-10-21T10:01:58|  2162.60700|  2162.65100|  1952.97000| 0.7272|
@@ -58,7 +58,7 @@ You can also query using coordinates (or any other format allowed on the HEASARC
     |00045594004|2012-04-24T08:10:00|  2290.84200|  2290.89700|  2063.00100| 3.7228|
     |00045594003|2012-01-27T08:53:00|   131.66700|     0.00000|     0.00000| 4.6665|
     |00045594002|2011-09-20T22:16:00|     0.00000|     0.00000|     0.00000| 7.5074|
-     
+    .
     No observations of 09h43m32.4s +33d26m58s found in HEASARC (check Quick Look page for any recent observations)
 
 
